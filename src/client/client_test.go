@@ -227,3 +227,47 @@ func TestPromptOverwrite(t *testing.T) {
 		})
 	}
 }
+
+func TestFormatReceiveCommand(t *testing.T) {
+	tests := []struct {
+		name     string
+		roomID   string
+		domain   string
+		expected string
+	}{
+		{
+			name:     "default domain should not include --domain flag",
+			roomID:   "test-room",
+			domain:   "https://e2ecp.com",
+			expected: "e2ecp receive test-room",
+		},
+		{
+			name:     "custom domain should include --domain flag",
+			roomID:   "my-room",
+			domain:   "https://e2ecp.example.com",
+			expected: "e2ecp --domain https://e2ecp.example.com receive my-room",
+		},
+		{
+			name:     "empty domain should not include --domain flag",
+			roomID:   "another-room",
+			domain:   "",
+			expected: "e2ecp receive another-room",
+		},
+		{
+			name:     "custom domain with http",
+			roomID:   "dev-room",
+			domain:   "http://localhost:3001",
+			expected: "e2ecp --domain http://localhost:3001 receive dev-room",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatReceiveCommand(tt.roomID, tt.domain)
+			if result != tt.expected {
+				t.Errorf("formatReceiveCommand(%q, %q) = %q; expected %q",
+					tt.roomID, tt.domain, result, tt.expected)
+			}
+		})
+	}
+}

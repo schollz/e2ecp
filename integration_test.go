@@ -94,7 +94,7 @@ func TestIntegrationFileTransfer(t *testing.T) {
 				sendDone <- fmt.Errorf("sender panic: %v", r)
 			}
 		}()
-		client.SendFile(sendFilePath, roomID, serverURL, logger)
+		client.SendFile(sendFilePath, roomID, serverURL, "https://e2ecp.com", logger)
 		sendDone <- nil
 	}()
 
@@ -237,7 +237,7 @@ func TestIntegrationFolderTransfer(t *testing.T) {
 				sendDone <- fmt.Errorf("sender panic: %v", r)
 			}
 		}()
-		client.SendFile(testFolder, roomID, serverURL, logger)
+		client.SendFile(testFolder, roomID, serverURL, "https://e2ecp.com", logger)
 		sendDone <- nil
 	}()
 
@@ -386,7 +386,7 @@ func TestIntegrationHashVerification(t *testing.T) {
 				sendDone <- fmt.Errorf("sender panic: %v", r)
 			}
 		}()
-		client.SendFile(sendFilePath, roomID, serverURL, logger)
+		client.SendFile(sendFilePath, roomID, serverURL, "https://e2ecp.com", logger)
 		sendDone <- nil
 	}()
 
@@ -535,7 +535,7 @@ func TestIntegrationTextTransfer(t *testing.T) {
 				sendDone <- fmt.Errorf("sender panic: %v", r)
 			}
 		}()
-		client.SendText(testText, roomID, serverURL, logger)
+		client.SendText(testText, roomID, serverURL, "https://e2ecp.com", logger)
 		sendDone <- nil
 	}()
 

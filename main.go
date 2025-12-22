@@ -86,10 +86,10 @@ var sendCmd = &cobra.Command{
 		_, err := os.Stat(input)
 		if err != nil {
 			// Path doesn't exist - treat as text
-			client.SendText(input, roomID, server, logger)
+			client.SendText(input, roomID, server, domain, logger)
 		} else {
 			// Path exists - send as file or folder
-			client.SendFile(input, roomID, server, logger)
+			client.SendFile(input, roomID, server, domain, logger)
 		}
 	},
 }

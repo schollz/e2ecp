@@ -23,8 +23,17 @@ import (
 
 const maxRetries = 3
 
+// formatReceiveCommand formats the CLI command for receiving, including --domain if not default
+func formatReceiveCommand(roomID, domain string) string {
+	// Default domain is https://e2ecp.com
+	if domain != "" && domain != "https://e2ecp.com" {
+		return fmt.Sprintf("e2ecp --domain %s receive %s", domain, roomID)
+	}
+	return fmt.Sprintf("e2ecp receive %s", roomID)
+}
+
 // SendFile sends a file to the specified room via the relay server
-func SendFile(filePath, roomID, serverURL string, logger *slog.Logger) {
+func SendFile(filePath, roomID, serverURL, domain string, logger *slog.Logger) {
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		log.Fatalf("Failed to stat file: %v", err)
@@ -195,8 +204,8 @@ func SendFile(filePath, roomID, serverURL string, logger *slog.Logger) {
 					fmt.Printf("Sending file '%s' (%s).\n",
 						fileName, formatBytes(fileSize))
 				}
-				fmt.Printf("Receive via CLI with\n\n\te2ecp receive %s\n\nor online at\n\n\t%s\n\n",
-					roomID, fullURL)
+				fmt.Printf("Receive via CLI with\n\n\t%s\n\nor online at\n\n\t%s\n\n",
+					formatReceiveCommand(roomID, domain), fullURL)
 
 				// Generate compact QR code (strip protocol for shorter code)
 				qrURL := fullURL
@@ -580,7 +589,7 @@ func SendFile(filePath, roomID, serverURL string, logger *slog.Logger) {
 }
 
 // SendText sends text to the specified room via the relay server
-func SendText(text, roomID, serverURL string, logger *slog.Logger) {
+func SendText(text, roomID, serverURL, domain string, logger *slog.Logger) {
 	clientID := uuid.New().String()
 
 	privKey, err := crypto.GenerateECDHKeyPair()
@@ -688,8 +697,8 @@ func SendText(text, roomID, serverURL string, logger *slog.Logger) {
 				fullURL := fmt.Sprintf("%s/%s", parsedURL.String(), roomID)
 
 				fmt.Printf("Sending text message.\n")
-				fmt.Printf("Receive via CLI with\n\n\te2ecp receive %s\n\nor online at\n\n\t%s\n\n",
-					roomID, fullURL)
+				fmt.Printf("Receive via CLI with\n\n\t%s\n\nor online at\n\n\t%s\n\n",
+					formatReceiveCommand(roomID, domain), fullURL)
 
 				// Generate compact QR code (strip protocol for shorter code)
 				qrURL := fullURL
