@@ -1,11 +1,13 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useConfig } from "./ConfigContext";
+import { useAuth } from "./AuthContext";
 import Navbar from "./Navbar";
 
 export default function About() {
     const navigate = useNavigate();
     const { storageEnabled } = useConfig();
+    const { isAuthenticated, user } = useAuth();
 
     return (
         <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
@@ -13,6 +15,9 @@ export default function About() {
 
             {/* Content */}
             <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+                {isAuthenticated && user && (
+                    <p className="text-sm sm:text-base mt-1 text-black dark:text-white">{user.email}</p>
+                )}
                 {/* What is E2ECP */}
                 <div className="border-4 border-black dark:border-white p-6 bg-white dark:bg-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
                     <h2 className="text-3xl font-black uppercase mb-4">What is E2ECP?</h2>

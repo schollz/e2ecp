@@ -12,21 +12,21 @@
         "@fontsource/monaspace-radon": "^5.2.5",
         "@fortawesome/fontawesome-free": "^7.1.0",
         "jszip": "^3.10.1",
-        "protobufjs": "^7.5.4",
+        "protobufjs": "^8.0.0",
         "qrcode.react": "^4.2.0",
-        "react": "^19.2.0",
-        "react-dom": "^19.2.0",
+        "react": "^19.2.3",
+        "react-dom": "^19.2.3",
         "react-hot-toast": "^2.6.0",
-        "react-router-dom": "^7.9.6",
+        "react-router-dom": "^7.12.0",
         "react-syntax-highlighter": "^16.1.0"
     },
     "devDependencies": {
         "@playwright/test": "^1.57.0",
-        "@tailwindcss/postcss": "^4.1.17",
-        "@vitejs/plugin-react": "^5.1.1",
+        "@tailwindcss/postcss": "^4.1.18",
+        "@vitejs/plugin-react": "^5.1.2",
         "postcss": "^8.5.6",
-        "tailwindcss": "^4.1.17",
-        "vite": "^7.2.4",
-        "vite-plugin-compression2": "^2.3.1"
+        "tailwindcss": "^4.1.18",
+        "vite": "^7.3.1",
+        "vite-plugin-compression2": "^2.4.0"
     }
 }

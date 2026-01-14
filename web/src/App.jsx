@@ -477,7 +477,7 @@ export default function App() {
     const [roomId, setRoomId] = useState(pathRoom);
     const onHomePage = pathRoom === "";
     const navigate = useNavigate();
-    const { isAuthenticated, logout } = useAuth();
+    const { isAuthenticated, logout, user } = useAuth();
     const { storageEnabled, loading: configLoading } = useConfig();
     const [connected, setConnected] = useState(false);
     const [peerCount, setPeerCount] = useState(1);
@@ -1845,6 +1845,9 @@ export default function App() {
                             <p className="text-sm sm:text-lg md:text-xl font-bold leading-tight mb-2 sm:mb-3">
                                 SECURELY TRANSFER FILES OR FOLDERS BETWEEN MACHINES
                             </p>
+                            {isAuthenticated && user && (
+                                <p className="text-sm sm:text-base mt-1 text-black dark:text-white">{user.email}</p>
+                            )}
                             {myMnemonic && (
                                 <div className="mt-3 sm:mt-4 flex flex-wrap items-center gap-2">
                                     <IconBadge
