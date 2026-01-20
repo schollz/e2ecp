@@ -92,13 +92,6 @@ export default function Navbar({ title = "e2ecp", subtitle = null }) {
                             >
                                 <i className="fas fa-sign-in-alt"></i>
                             </button>
-                            <button
-                                onClick={() => navigate("/login?mode=signup")}
-                                className={`border-2 border-black dark:border-white bg-black dark:bg-white text-white dark:text-black px-3 py-2 sm:px-4 text-sm sm:text-base font-bold uppercase hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white hover:scale-105 transition-all cursor-pointer ${isSignUpActive ? activeRing : ""}`}
-                                aria-current={isSignUpActive ? "page" : undefined}
-                            >
-                                Sign Up
-                            </button>
                         </>
                     )}
                 </div>

@@ -499,11 +499,6 @@ export default function App() {
     const [textInput, setTextInput] = useState("");
     const [receivedText, setReceivedText] = useState(null);
     const [showTextModal, setShowTextModal] = useState(false);
-    const showStorageCta =
-        onHomePage &&
-        storageEnabled &&
-        !configLoading &&
-        !connected;
 
     const myKeyPairRef = useRef(null);
     const aesKeyRef = useRef(null);
@@ -2010,28 +2005,6 @@ export default function App() {
                                 ) : (
                                     <>STATUS: {status.toUpperCase()}</>
                                 )}
-                            </div>
-                        </div>
-                    )}
-
-                    {showStorageCta && !isAuthenticated && (
-                        <div className="bg-white dark:bg-black border-4 sm:border-8 border-black dark:border-white p-4 sm:p-6 mb-3 sm:mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:sm:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] text-gray-900 dark:text-white transition-colors duration-200">
-                            <div className="font-black text-lg sm:text-xl uppercase mb-2">
-                                Need to store your files temporarily to transfer?
-                            </div>
-                            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                                <button
-                                    onClick={() => navigate("/login")}
-                                    className="border-2 sm:border-4 border-black dark:border-white bg-black dark:bg-white text-white dark:text-black px-4 py-3 sm:px-6 sm:py-3 font-black uppercase hover:bg-gray-900 dark:hover:bg-gray-300 transition-colors cursor-pointer shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none active:translate-x-2 active:translate-y-2 text-center"
-                                >
-                                    Sign in for storage
-                                </button>
-                                <button
-                                    onClick={() => navigate("/about")}
-                                    className="border-2 sm:border-4 border-black dark:border-white bg-white dark:bg-black text-black dark:text-white px-4 py-3 sm:px-6 sm:py-3 font-black uppercase hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors cursor-pointer shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none active:translate-x-2 active:translate-y-2 text-center"
-                                >
-                                    More information
-                                </button>
                             </div>
                         </div>
                     )}
