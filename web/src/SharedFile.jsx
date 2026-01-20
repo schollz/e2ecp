@@ -350,7 +350,6 @@ export default function SharedFile() {
                 return;
             }
 
-            toast.success("Preview loaded!", { id: "preview" });
         } catch (error) {
             console.error("Preview error:", error);
             toast.error("Failed to load preview", { id: "preview" });

@@ -84,7 +84,6 @@ export default function Login() {
         try {
             if (isLogin) {
                 await login(email, password);
-                toast.success("Logged in successfully!");
                 navigate("/storage");
             } else {
                 if (!captchaToken || !captchaAnswer.trim()) {

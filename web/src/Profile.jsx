@@ -163,8 +163,6 @@ export default function Profile() {
 
             // Encrypt the filename with the user's master key
             const encryptedFilename = await encryptString(file.name, encryptionKey);
-            toast.success("File encrypted", { id: "encrypt" });
-
             const formData = new FormData();
             // Send encrypted blob (server never sees the real filename)
             formData.append("file", encryptedBlob);
