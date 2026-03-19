@@ -494,6 +494,8 @@ export default function App() {
     const [showDownloadConfirmModal, setShowDownloadConfirmModal] =
         useState(false);
     const [pendingDownload, setPendingDownload] = useState(null);
+    const [showIncomingModal, setShowIncomingModal] = useState(false);
+    const [incomingFileMeta, setIncomingFileMeta] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
     const [roomIdError, setRoomIdError] = useState(null);
     const [textInput, setTextInput] = useState("");
@@ -521,6 +523,12 @@ export default function App() {
     const isFolderRef = useRef(false);
     const originalFolderNameRef = useRef(null);
     const expectedHashRef = useRef(null);
+
+    // For streaming file directly to disk (File System Access API)
+    const fileWritableRef = useRef(null);
+    const isStreamingToFileRef = useRef(false);
+    const writeChainRef = useRef(Promise.resolve());
+    const transferDeclinedRef = useRef(false);
 
     // For chunk ordering and ACK tracking
     const receivedChunksRef = useRef(new Set());
@@ -908,6 +916,12 @@ export default function App() {
                 originalFolderNameRef.current = originalFolderName;
                 expectedHashRef.current = expectedHash;
 
+                // Reset streaming state
+                fileWritableRef.current = null;
+                isStreamingToFileRef.current = false;
+                writeChainRef.current = Promise.resolve();
+                transferDeclinedRef.current = false;
+
                 // Reset chunk tracking
                 receivedChunksRef.current = new Set();
                 chunkBufferRef.current = new Map();
@@ -928,6 +942,21 @@ export default function App() {
                     startTime: downloadStartTimeRef.current,
                     fileName: displayName,
                 });
+
+                // If the browser supports streaming to disk, show a pre-accept
+                // modal so the user can pick a save location before chunks arrive.
+                // This lets us write each chunk directly to disk with no full
+                // in-memory assembly.
+                if (window.showSaveFilePicker) {
+                    setIncomingFileMeta({
+                        fileName: displayName,
+                        totalSize,
+                        isFolder,
+                        originalFolderName,
+                        typeLabel,
+                    });
+                    setShowIncomingModal(true);
+                }
                 return;
             }
 
@@ -956,14 +985,24 @@ export default function App() {
                     receivedChunksRef.current.add(chunkNum);
                     lastActivityTimeRef.current = Date.now();
 
+                    // Drop chunk silently if the user declined the transfer
+                    if (transferDeclinedRef.current) {
+                        sendMsg({ type: "chunk_ack", chunk_num: chunkNum });
+                        return;
+                    }
+
                     // Handle chunk ordering
                     if (chunkNum === nextExpectedChunkRef.current) {
-                        // This is the next expected chunk - add it
-                        fileChunksRef.current.push(plainChunk);
+                        // This is the next expected chunk
+                        if (isStreamingToFileRef.current) {
+                            queueWrite(plainChunk);
+                        } else {
+                            fileChunksRef.current.push(plainChunk);
+                        }
                         receivedBytesRef.current += plainChunk.length;
                         nextExpectedChunkRef.current++;
 
-                        // Check if we have buffered chunks that can now be added
+                        // Flush any buffered out-of-order chunks that are now in order
                         while (
                             chunkBufferRef.current.has(
                                 nextExpectedChunkRef.current,
@@ -972,7 +1011,11 @@ export default function App() {
                             const bufferedChunk = chunkBufferRef.current.get(
                                 nextExpectedChunkRef.current,
                             );
-                            fileChunksRef.current.push(bufferedChunk);
+                            if (isStreamingToFileRef.current) {
+                                queueWrite(bufferedChunk);
+                            } else {
+                                fileChunksRef.current.push(bufferedChunk);
+                            }
                             receivedBytesRef.current += bufferedChunk.length;
                             chunkBufferRef.current.delete(
                                 nextExpectedChunkRef.current,
@@ -980,7 +1023,7 @@ export default function App() {
                             nextExpectedChunkRef.current++;
                         }
                     } else if (chunkNum > nextExpectedChunkRef.current) {
-                        // Out-of-order chunk - buffer it
+                        // Out-of-order chunk — always buffer, stream in order later
                         chunkBufferRef.current.set(chunkNum, plainChunk);
                     }
                     // If chunkNum < nextExpectedChunkRef.current, it's a duplicate
@@ -1020,15 +1063,77 @@ export default function App() {
             }
 
             if (msg.type === "file_end") {
-                if (!aesKeyRef.current || fileChunksRef.current.length === 0) {
+                // User declined — ignore
+                if (transferDeclinedRef.current) {
+                    transferDeclinedRef.current = false;
+                    return;
+                }
+
+                if (!aesKeyRef.current) {
                     log("No file data received");
                     setDownloadProgress(null);
                     return;
                 }
 
-                try {
-                    // Show verifying state immediately so the user sees feedback
-                    // while the CPU-intensive reassembly + SHA-256 runs
+                const elapsed =
+                    (Date.now() - downloadStartTimeRef.current) / 1000;
+                const totalSize = receivedBytesRef.current;
+                const speed = elapsed > 0 ? totalSize / elapsed : 0;
+
+                let downloadFileName;
+                if (isFolderRef.current && originalFolderNameRef.current) {
+                    downloadFileName = originalFolderNameRef.current + ".zip";
+                } else {
+                    downloadFileName = fileNameRef.current || "download.bin";
+                }
+
+                const typeLabel = isFolderRef.current ? "folder" : "file";
+
+                const sendTransferReceived = async () => {
+                    try {
+                        const metadataBytes = new TextEncoder().encode(
+                            JSON.stringify({ transfer_type: "file" }),
+                        );
+                        const { iv, ciphertext } = await encryptBytes(
+                            aesKeyRef.current,
+                            metadataBytes,
+                        );
+                        sendMsg({
+                            type: "transfer_received",
+                            encrypted_metadata: uint8ToBase64(ciphertext),
+                            metadata_iv: uint8ToBase64(iv),
+                        });
+                    } catch {
+                        sendMsg({ type: "transfer_received" });
+                    }
+                };
+
+                if (isStreamingToFileRef.current && fileWritableRef.current) {
+                    // Streaming path: wait for all queued writes, then close the file.
+                    // Nothing is held in memory — chunks went straight to disk.
+                    try {
+                        await writeChainRef.current;
+                        await fileWritableRef.current.close();
+                    } catch (err) {
+                        console.error("Stream write failed:", err);
+                        log("Failed to write file to disk");
+                    } finally {
+                        fileWritableRef.current = null;
+                        isStreamingToFileRef.current = false;
+                        writeChainRef.current = Promise.resolve();
+                    }
+                    setDownloadProgress(null);
+                    log(`Saved "${downloadFileName}" (${typeLabel})`);
+                    await sendTransferReceived();
+                } else {
+                    // Fallback path (e.g. iOS Safari): chunks are in fileChunksRef.
+                    // Build a Blob directly from the chunk array — no Uint8Array copy needed.
+                    if (fileChunksRef.current.length === 0) {
+                        log("No file data received");
+                        setDownloadProgress(null);
+                        return;
+                    }
+
                     setDownloadProgress((prev) => ({
                         ...prev,
                         percent: 100,
@@ -1036,37 +1141,16 @@ export default function App() {
                         eta: 0,
                         verifying: true,
                     }));
-                    // Yield to the browser so the UI can re-render before heavy work
                     await new Promise((resolve) => setTimeout(resolve, 0));
 
-                    // Reassemble plaintext from decrypted chunks
-                    const totalLen = fileChunksRef.current.reduce(
-                        (sum, chunk) => sum + chunk.length,
-                        0,
-                    );
-                    const plainBytes = new Uint8Array(totalLen);
-                    let offset = 0;
-                    for (const chunk of fileChunksRef.current) {
-                        plainBytes.set(chunk, offset);
-                        offset += chunk.length;
-                    }
-
-                    // Integrity is already guaranteed per-chunk by AES-GCM authentication tags,
-                    // so the end-to-end SHA-256 check is skipped for performance.
-
-                    const elapsed =
-                        (Date.now() - downloadStartTimeRef.current) / 1000;
-                    const speed = elapsed > 0 ? totalLen / elapsed : 0;
-
-                    // Determine download name based on whether it's a folder
-                    let downloadFileName;
-                    if (isFolderRef.current && originalFolderNameRef.current) {
-                        downloadFileName =
-                            originalFolderNameRef.current + ".zip";
-                    } else {
-                        downloadFileName =
-                            fileNameRef.current || "download.bin";
-                    }
+                    // Integrity is guaranteed per-chunk by AES-GCM auth tags.
+                    const blob = new Blob(fileChunksRef.current, {
+                        type: isFolderRef.current
+                            ? "application/zip"
+                            : "application/octet-stream",
+                    });
+                    fileChunksRef.current = [];
+                    const url = URL.createObjectURL(blob);
 
                     setDownloadProgress({
                         percent: 100,
@@ -1075,52 +1159,16 @@ export default function App() {
                         fileName: downloadFileName,
                     });
 
-                    const blob = new Blob([plainBytes], {
-                        type: isFolderRef.current
-                            ? "application/zip"
-                            : "application/octet-stream",
-                    });
-                    const url = URL.createObjectURL(blob);
-
-                    const typeLabel = isFolderRef.current ? "folder" : "file";
-
-                    // Store pending download and show confirmation modal
                     setPendingDownload({
-                        url: url,
+                        url,
                         name: downloadFileName,
-                        size: formatBytes(totalLen),
+                        size: formatBytes(totalSize),
                         type: typeLabel,
                     });
                     setShowDownloadConfirmModal(true);
 
-                    log(
-                        `Decrypted and prepared download "${downloadFileName}" (${typeLabel})`,
-                    );
-
-                    // Send transfer received confirmation to sender with encrypted metadata
-                    try {
-                        const transferMetadata = {
-                            transfer_type: "file",
-                        };
-                        const metadataJSON = JSON.stringify(transferMetadata);
-                        const metadataBytes = new TextEncoder().encode(metadataJSON);
-                        const { iv: metadataIV, ciphertext: encryptedMetadataBytes } =
-                            await encryptBytes(aesKeyRef.current, metadataBytes);
-
-                        sendMsg({
-                            type: "transfer_received",
-                            encrypted_metadata: uint8ToBase64(encryptedMetadataBytes),
-                            metadata_iv: uint8ToBase64(metadataIV),
-                        });
-                    } catch (err) {
-                        console.error("Failed to encrypt transfer_received metadata:", err);
-                        // Fall back to sending without metadata
-                        sendMsg({ type: "transfer_received" });
-                    }
-                } catch (err) {
-                    console.error(err);
-                    log("Failed to assemble file");
-                    setDownloadProgress(null);
+                    log(`Prepared download "${downloadFileName}" (${typeLabel})`);
+                    await sendTransferReceived();
                 }
                 return;
             }
@@ -1741,6 +1789,50 @@ export default function App() {
         });
     }
 
+    // Serialises writes to the FileSystemWritableFileStream so concurrent
+    // chunk handlers can't interleave writes.
+    function queueWrite(chunk) {
+        writeChainRef.current = writeChainRef.current.then(() =>
+            fileWritableRef.current.write(chunk),
+        );
+    }
+
+    async function handleAcceptIncoming() {
+        setShowIncomingModal(false);
+        const meta = incomingFileMeta;
+        const downloadFileName = meta.isFolder
+            ? (meta.originalFolderName || "download") + ".zip"
+            : meta.fileName || "download.bin";
+
+        try {
+            const fileHandle = await window.showSaveFilePicker({
+                suggestedName: downloadFileName,
+            });
+            const writable = await fileHandle.createWritable();
+            fileWritableRef.current = writable;
+            isStreamingToFileRef.current = true;
+
+            // Flush chunks that buffered while the modal was open
+            for (const chunk of fileChunksRef.current) {
+                queueWrite(chunk);
+            }
+            fileChunksRef.current = [];
+        } catch {
+            // User cancelled the picker — fall back to in-memory blob mode
+            isStreamingToFileRef.current = false;
+            fileWritableRef.current = null;
+        }
+    }
+
+    function handleDeclineIncoming() {
+        setShowIncomingModal(false);
+        transferDeclinedRef.current = true;
+        fileChunksRef.current = [];
+        chunkBufferRef.current = new Map();
+        setDownloadProgress(null);
+        log("Incoming transfer declined");
+    }
+
     // Handler to confirm and trigger file download
     function handleConfirmDownload() {
         if (!pendingDownload) return;
@@ -2206,6 +2298,53 @@ export default function App() {
                             >
                                 Close
                             </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Incoming File Modal (shown at file_start when FSAPI is available) */}
+                {showIncomingModal && incomingFileMeta && (
+                    <div className="fixed inset-0 bg-[rgba(15,15,15,0.7)] dark:bg-[rgba(0,0,0,0.8)] flex items-center justify-center z-50 p-4 transition-colors duration-200">
+                        <div
+                            className="bg-white dark:bg-black border-4 sm:border-8 border-black dark:border-white p-6 sm:p-8 max-w-md sm:max-w-lg w-full text-black dark:text-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] transition-colors duration-200"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <h2 className="text-2xl sm:text-3xl font-black uppercase mb-4 text-center">
+                                INCOMING FILE
+                            </h2>
+                            <div className="bg-gray-200 dark:bg-white border-2 sm:border-4 border-black dark:border-black p-4 mb-4 transition-colors duration-200 dark:text-black">
+                                <p className="text-sm sm:text-base font-bold mb-2">
+                                    <span className="uppercase">Name:</span>{" "}
+                                    {incomingFileMeta.fileName}
+                                </p>
+                                <p className="text-sm sm:text-base font-bold mb-2">
+                                    <span className="uppercase">Type:</span>{" "}
+                                    {incomingFileMeta.typeLabel}
+                                </p>
+                                <p className="text-sm sm:text-base font-bold">
+                                    <span className="uppercase">Size:</span>{" "}
+                                    {formatBytes(incomingFileMeta.totalSize)}
+                                </p>
+                            </div>
+                            <p className="text-sm sm:text-base font-bold mb-6 text-center">
+                                Accept and choose where to save this {incomingFileMeta.typeLabel}?
+                            </p>
+                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                                <button
+                                    type="button"
+                                    onClick={handleDeclineIncoming}
+                                    className="flex-1 border-2 sm:border-4 border-black dark:border-white bg-white dark:bg-black text-black dark:text-white px-4 py-3 sm:py-4 text-base sm:text-lg font-black uppercase hover:bg-gray-200 dark:hover:bg-white dark:hover:text-black transition-colors cursor-pointer shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none active:translate-x-2 active:translate-y-2"
+                                >
+                                    Decline
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleAcceptIncoming}
+                                    className="flex-1 border-2 sm:border-4 border-black dark:border-white bg-black dark:bg-white text-white dark:text-black px-4 py-3 sm:py-4 text-base sm:text-lg font-black uppercase hover:bg-gray-900 dark:hover:bg-gray-300 transition-colors cursor-pointer shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none active:translate-x-2 active:translate-y-2"
+                                >
+                                    Accept & Save
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
