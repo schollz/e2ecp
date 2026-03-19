@@ -1920,33 +1920,27 @@ export default function App() {
                                 <p className="text-sm sm:text-base mt-1 text-black dark:text-white">{user.email}</p>
                             )}
                             {myMnemonic && (
-                                <div className="mt-3 sm:mt-4 flex flex-wrap items-center gap-2">
+                                <div className="mt-2 sm:mt-4 flex flex-wrap items-center gap-1 sm:gap-2">
                                     <IconBadge
                                         mnemonic={myMnemonic}
                                         label="You"
                                         className="shrink-0"
                                     />
-                                    <i className="fas fa-arrows-left-right text-white text-lg sm:text-xl"></i>
+                                    <i className="fas fa-arrows-left-right text-white text-xs sm:text-xl"></i>
                                     <button
                                         onClick={(e) => {
                                             e.preventDefault();
                                             const url = `${window.location.protocol}//${window.location.host}/${roomId}`;
                                             navigator.clipboard
                                                 .writeText(url)
-                                                .then(() => {
-                                                    toast.success(
-                                                        "Copied to clipboard",
-                                                    );
-                                                })
                                                 .catch((err) => {
-                                                    toast.error("Failed to copy");
                                                     console.error(
                                                         "Failed to copy:",
                                                         err,
                                                     );
                                                 });
                                         }}
-                                        className="bg-white dark:bg-black text-black dark:text-white px-2 py-1 sm:px-3 sm:py-1 inline-flex items-center justify-center border-2 sm:border-4 border-black dark:border-white font-black text-sm sm:text-lg uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-white dark:hover:text-black transition-colors"
+                                        className="bg-white dark:bg-black text-black dark:text-white px-1 py-0.5 sm:px-3 sm:py-1 inline-flex items-center justify-center border-2 sm:border-4 border-black dark:border-white font-black text-xs sm:text-lg uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-white dark:hover:text-black transition-colors max-w-[120px] sm:max-w-none truncate"
                                         title="Copy URL to clipboard"
                                         type="button"
                                     >
@@ -1958,7 +1952,7 @@ export default function App() {
                                     </button>
                                     {peerMnemonic && (
                                         <>
-                                            <i className="fas fa-arrows-left-right text-white text-lg sm:text-xl"></i>
+                                            <i className="fas fa-arrows-left-right text-white text-xs sm:text-xl"></i>
                                             <IconBadge
                                                 mnemonic={peerMnemonic}
                                                 label="Peer"
@@ -2103,7 +2097,7 @@ export default function App() {
                             )}
 
                             <div
-                                className={`border-2 sm:border-4 border-black dark:border-white p-6 sm:p-8 text-center transition-all duration-200 ${hasAesKey
+                                className={`border-2 sm:border-4 border-black dark:border-white p-3 sm:p-8 text-center transition-all duration-200 ${hasAesKey
                                     ? isDragging
                                         ? "bg-yellow-300 dark:bg-yellow-600 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] scale-105"
                                         : "bg-white dark:bg-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
@@ -2140,8 +2134,8 @@ export default function App() {
                                             </button>
 
                                             {/* Text input section */}
-                                            <div className="mt-4 pt-4 border-t-2 border-black dark:border-white">
-                                                <div className="flex gap-2 min-w-0">
+                                            <div className="mt-4 pt-4 border-t-2 border-black dark:border-white text-left">
+                                                <div className="flex gap-2 w-full overflow-hidden">
                                                     <input
                                                         type="text"
                                                         value={textInput}
