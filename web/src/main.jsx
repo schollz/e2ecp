@@ -1,7 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
+// import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./AuthContext.jsx";
 import { ConfigProvider } from "./ConfigContext.jsx";
 import { DarkModeProvider } from "./DarkModeContext.jsx";
@@ -24,7 +24,7 @@ createRoot(document.getElementById("root")).render(
             <DarkModeProvider>
                 <ConfigProvider>
                     <AuthProvider>
-                    <Toaster
+                    {/* <Toaster
                         position="bottom-center"
                         toastOptions={{
                             duration: 3000,
@@ -35,7 +35,7 @@ createRoot(document.getElementById("root")).render(
                                 fontWeight: "bold",
                             },
                         }}
-                    />
+                    /> */}
                     <Routes>
                         <Route path="/" element={<Landing />} />
                         <Route path="/login" element={<Login />} />
