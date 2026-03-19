@@ -411,18 +411,18 @@ function IconBadge({ mnemonic, label, className = "" }) {
         <div className={`relative group ${className}`}>
             <div
                 tabIndex={0}
-                className="bg-white dark:bg-black text-black dark:text-white px-3 py-2 sm:px-4 sm:py-3 inline-flex items-center justify-center gap-2 border-2 sm:border-4 border-black dark:border-white font-black focus:outline-hidden transition-colors duration-200"
+                className="bg-white dark:bg-black text-black dark:text-white px-2 py-1 sm:px-4 sm:py-3 inline-flex items-center justify-center gap-1 sm:gap-2 border-2 sm:border-4 border-black dark:border-white font-black focus:outline-hidden transition-colors duration-200"
                 aria-label={`${label}: ${mnemonic}`}
             >
                 {iconClasses.map((iconClass, index) => (
                     <i
                         key={index}
-                        className={`fas ${iconClass} text-xl sm:text-2xl md:text-3xl`}
+                        className={`fas ${iconClass} text-base sm:text-xl md:text-2xl`}
                         aria-hidden="true"
                     ></i>
                 ))}
                 {label === "You" && (
-                    <span className="text-sm sm:text-base ml-1">(YOU)</span>
+                    <span className="text-xs sm:text-sm ml-1">(YOU)</span>
                 )}
             </div>
             <div className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150 bg-white dark:bg-black text-black dark:text-white border-2 border-black dark:border-white px-2 py-1 text-xs font-black uppercase whitespace-nowrap shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]">
@@ -2141,7 +2141,7 @@ export default function App() {
 
                                             {/* Text input section */}
                                             <div className="mt-4 pt-4 border-t-2 border-black dark:border-white">
-                                                <div className="flex gap-2">
+                                                <div className="flex gap-2 min-w-0">
                                                     <input
                                                         type="text"
                                                         value={textInput}
@@ -2164,7 +2164,7 @@ export default function App() {
                                                             !hasAesKey ||
                                                             !textInput.trim()
                                                         }
-                                                        className="border-2 border-black dark:border-white px-4 py-2 text-sm sm:text-base font-black uppercase transition-all whitespace-nowrap bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-300 cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                                        className="border-2 border-black dark:border-white px-2 sm:px-4 py-2 text-sm sm:text-base font-black uppercase transition-all shrink-0 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-300 cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
                                                     >
                                                         SEND
                                                     </button>
