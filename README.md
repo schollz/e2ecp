@@ -78,6 +78,12 @@ cd e2ecp && make
 ```
 
 
+### Environment variables
+
+| Variable | Description |
+|---|---|
+| `E2ECP_PASSWORD` | Password used for file encryption during `upload`. If set, the interactive password prompt is skipped. **Note:** Only use in trusted environments where your environment variables are protected. |
+
 ## Run your own relay server
 
 You can run your own relay server if you want to self-host, using the [command-line tool](#command-line-tool).
