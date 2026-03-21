@@ -243,14 +243,19 @@ func UploadFile(filePath, server string, logger *slog.Logger) {
 	}
 
 	// Ask for password to derive encryption key
-	fmt.Print("Enter your password to encrypt the file: ")
-	passwordBytes, err := readPassword()
-	if err != nil {
-		fmt.Println("\nError: Failed to read password")
-		return
+	password := os.Getenv("E2ECP_PASSWORD")
+	if password != "" {
+		fmt.Println("Using password from E2ECP_PASSWORD environment variable")
+	} else {
+		fmt.Print("Enter your password to encrypt the file: ")
+		passwordBytes, err := readPassword()
+		if err != nil {
+			fmt.Println("\nError: Failed to read password")
+			return
+		}
+		password = string(passwordBytes)
+		fmt.Println() // New line after password input
 	}
-	password := string(passwordBytes)
-	fmt.Println() // New line after password input
 
 	// Derive master key using PBKDF2 (matching web app)
 	masterKey, err := deriveMasterKey(password, userInfo.EncryptionSalt)
